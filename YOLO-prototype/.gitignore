@@ -3,4 +3,5 @@ runs
 data
 tiled_data
 test_results
+evaluation_results
 *.pt
