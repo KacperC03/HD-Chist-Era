@@ -6,6 +6,7 @@ import shutil
 from dotenv import load_dotenv
 
 load_dotenv()
+random.seed(42)
 
 # ================= SETTINGS =================
 RAW_DATA_DIR = os.getenv("RAW_DATA_DIR", "data")
