@@ -8,6 +8,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent.absolute()
 
 DATASET_DIR = os.getenv("TILED_DATA_DIR", "tiled_data")
+EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME")
 MODEL_TYPE = "yolov8s-cls.pt" 
 EPOCHS = 30                   
 IMG_SIZE = 640                
@@ -17,7 +18,7 @@ def main():
     abs_dataset_dir = Path(DATASET_DIR).absolute()
     
     project_dir = BASE_DIR / "runs" / "classify" / "crop_classification"
-    checkpoint_path = project_dir / "yolo_model_v1" / "weights" / "last.pt"
+    checkpoint_path = project_dir / EXPERIMENT_NAME / "weights" / "last.pt"
 
     if checkpoint_path.exists():
         print(f"\n[RESUME] Found checkpoint at {checkpoint_path}")
@@ -39,7 +40,7 @@ def main():
             imgsz=IMG_SIZE,
             batch=BATCH_SIZE,
             project=str(project_dir),
-            name="yolo_model_v1",
+            name=EXPERIMENT_NAME,
             device=0,
             workers=2
         )

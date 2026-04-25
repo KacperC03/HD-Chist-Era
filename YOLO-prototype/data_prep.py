@@ -13,12 +13,18 @@ RAW_DATA_DIR = os.getenv("RAW_DATA_DIR", "data")
 OUTPUT_DIR = os.getenv("TILED_DATA_DIR", "tiled_data")
 TILE_SIZE = 640
 
+# Split strategy: 'random' or 'sequential' (time series)
+SPLIT_STRATEGY = os.getenv("SPLIT_STRATEGY", "sequential") 
+
+# Size of the gap (in number of images) to create a buffer zone between train/val/test splits for sequential data
+SEQUENCE_GAP = int(os.getenv("SEQUENCE_GAP", 5))
+
 # Splits for each date-folder:
 VAL_RATIO = 0.1   # 10% for validation during training
 TEST_RATIO = 0.1  # 10% for final evaluation (completely unseen)
 # The remaining 80% goes to training automatically.
 
-# Dynamic overlap to handle class imbalance
+# Dynamic overlap to handle class imbalance (only for training dataset)
 CLASS_OVERLAP = {
     "Wheat-dataset": 0.1,
     "Drybean-dataset": 0.1,
@@ -75,37 +81,56 @@ def main():
             (out_path / split / cls_dir.name).mkdir(parents=True, exist_ok=True)
 
     for cls_dir in classes:
-        overlap = CLASS_OVERLAP.get(cls_dir.name, DEFAULT_OVERLAP)
+        base_overlap = CLASS_OVERLAP.get(cls_dir.name, DEFAULT_OVERLAP)
         date_folders = [d for d in cls_dir.iterdir() if d.is_dir()]
         
-        print(f"\nProcessing Class: {cls_dir.name} (Overlap: {overlap*100}%)")
+        print(f"\nProcessing Class: {cls_dir.name} (Base Train Overlap: {base_overlap*100}%)")
         
         for date_dir in date_folders:
             images = list(date_dir.glob('*.jpg')) + list(date_dir.glob('*.png')) + list(date_dir.glob('*.tif'))
             if not images:
                 continue
                 
+            images = sorted(images) 
             date_identifier = date_dir.name 
-            random.shuffle(images)
             
-            # Stratified 3-way split
+            current_gap = SEQUENCE_GAP
+            
+            if SPLIT_STRATEGY == "random":
+                random.shuffle(images)
+                current_gap = 0
+            elif SPLIT_STRATEGY != "sequential":
+                raise ValueError("SPLIT_STRATEGY musi być 'random' lub 'sequential'")
+            
             total = len(images)
             val_count = int(total * VAL_RATIO)
             test_count = int(total * TEST_RATIO)
             
-            val_images = images[:val_count]
-            test_images = images[val_count:val_count + test_count]
-            train_images = images[val_count + test_count:]
+            if total <= val_count + test_count + (2 * current_gap):
+                print(f"    [Ostrzeżenie] Za mało zdjęć ({total}) w {date_identifier}. Pomijam strefę buforową.")
+                current_gap = 0
             
-            # Logic for generating tiles
+            train_count = total - val_count - test_count - (2 * current_gap)
+            
+            train_images = images[:train_count]
+            
+            val_start = train_count + current_gap
+            val_images = images[val_start : val_start + val_count]
+            
+            test_start = val_start + val_count + current_gap
+            test_images = images[test_start:]
+            
             splits = {'train': train_images, 'val': val_images, 'test': test_images}
             
             for split_name, img_list in splits.items():
-                desc = f"    [{split_name.upper()}] {date_identifier}"
+                desc = f"    [{split_name.upper()}] {date_identifier} ({len(img_list)} imgs)"
+                
+                current_overlap = base_overlap if split_name == 'train' else 0.0
+                
                 for img_path in tqdm(img_list, desc=desc, leave=False):
-                    process_image(img_path, out_path / split_name / cls_dir.name, date_identifier, overlap)
+                    process_image(img_path, out_path / split_name / cls_dir.name, date_identifier, current_overlap)
 
-    print("\n[SUCCESS] Dataset prepared with Train, Val, and Test splits!")
+    print("\n[SUCCESS] Dataset prepared with Train, Val, and Test splits (with buffer zones)!")
 
 if __name__ == "__main__":
     main()

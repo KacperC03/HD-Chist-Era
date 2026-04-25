@@ -1,5 +1,8 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ================= SETTINGS =================
 RAW_DATA_DIR = os.getenv("RAW_DATA_DIR", "data")

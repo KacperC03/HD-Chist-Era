@@ -11,6 +11,7 @@ load_dotenv()
 # ================= SETTINGS =================
 BASE_DIR = Path(__file__).parent.absolute()
 DATASET_DIR = os.getenv("TILED_DATA_DIR", "tiled_data")
+EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME")
 
 # Directory where reports will be saved
 RESULTS_DIR = BASE_DIR / "evaluation_results"
@@ -22,7 +23,7 @@ def main():
     test_dir = abs_dataset_dir / "test"
     
     # Path to the BEST weights from your training
-    model_path = BASE_DIR / "runs" / "classify" / "crop_classification" / "yolo_model_v1" / "weights" / "best.pt"
+    model_path = BASE_DIR / "runs" / "classify" / "crop_classification" / EXPERIMENT_NAME / "weights" / "best.pt"
     
     # 1. Verify files exist
     if not model_path.exists():
