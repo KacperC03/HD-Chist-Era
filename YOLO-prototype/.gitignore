@@ -1,7 +1,7 @@
 .env
-runs
 data
 tiled_data
 test_results
 evaluation_results
-*.pt
+yolo26n.pt
+yolov8s-cls.pt
